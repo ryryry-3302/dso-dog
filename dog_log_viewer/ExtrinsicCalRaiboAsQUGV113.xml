@@ -1,0 +1,18 @@
+<calibration>
+<date>20260515</date>
+    <lidarCalibration>
+        <sensorId>71</sensorId>
+        <numBeams>64</numBeams>
+        <numAzimuthBins>2048</numAzimuthBins>
+        <vfovUp>45</vfovUp>
+        <vfovDown>-45</vfovDown>
+        <lidarMaskPath>lidarVisibilityMask71_GHOST38.bin</lidarMaskPath>
+        <imuToLidarOffsetX>0</imuToLidarOffsetX>
+        <imuToLidarOffsetY>0</imuToLidarOffsetY>
+        <imuToLidarOffsetZ>0.1</imuToLidarOffsetZ>
+        <imuToLidarQx>0.0008219372957</imuToLidarQx>
+        <imuToLidarQy>-0.0002922070495</imuToLidarQy>
+        <imuToLidarQz>0.00548395679</imuToLidarQz>
+        <imuToLidarQw>0.9999845825</imuToLidarQw>
+    </lidarCalibration>
+</calibration>

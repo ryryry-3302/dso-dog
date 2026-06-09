@@ -1,0 +1,7 @@
+numpy
+matplotlib
+scipy
+pytransform3d
+rerun-sdk>=0.27.1
+tqdm
+open3d

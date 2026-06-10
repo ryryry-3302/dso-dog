@@ -33,7 +33,8 @@ TIMELINE = "system_time"
 
 def main(camera_cal_path: str | Path, lidar_cal_path: str | Path,
          gclf_file_path: str | Path, lidar_log_path: str | Path,
-         lidar_id: int = 71, camera_id: int = 211):
+         lidar_id: int = 71, camera_id: int = 211,
+         rerun_mode: str = "connect", rerun_memory_limit: str = "2GB"):
     # Input validation
     camera_cal_path = Path(camera_cal_path)
     assert camera_cal_path.exists(), f"camera_cal_path [{str(camera_cal_path)}] does not exist."
@@ -52,7 +53,15 @@ def main(camera_cal_path: str | Path, lidar_cal_path: str | Path,
     K_CAM_mtx = RRU._K_arr_to_mtx(CAMERA_CAL.K)
 
     # Spawn a new recording
-    rr.init("VisSyncedLidarCamera", spawn=True, recording_id=str(time.perf_counter_ns()))
+    rr.init("VisSyncedLidarCamera", recording_id=str(time.perf_counter_ns()))
+    if rerun_mode == "connect":
+        rr.connect_grpc()
+    elif rerun_mode == "spawn":
+        rr.spawn(memory_limit=rerun_memory_limit)
+    elif rerun_mode == "web":
+        grpc_url = rr.serve_grpc(server_memory_limit=rerun_memory_limit)
+        rr.serve_web_viewer(connect_to=grpc_url)
+        print(f"Rerun web viewer connected to {grpc_url}")
     rr.log("/", rr.ViewCoordinates.FLU, static=True)
     rr.log(WORLD_FRAME, RRU._T_to_rerun(np.eye(4)), static=True)
     rr.log(BODY_FRAME, RRU._T_to_rerun(np.eye(4)))
@@ -85,8 +94,12 @@ def main(camera_cal_path: str | Path, lidar_cal_path: str | Path,
 
         prev_t = t_ns
 
-        gclfFile.seek_to_timestamp(t_ns)
-        image_pil, _ = gclfFile.get_next()
+        try:
+            gclfFile.seek_to_timestamp(t_ns)
+            image_pil, _ = gclfFile.get_next()
+        except StopIteration:
+            print(f"\n[WARN] Camera log ended before LiDAR timestamp {t_ns}; stopping playback.")
+            break
         image = np.array(image_pil)
 
         # Preprocessing
@@ -120,6 +133,12 @@ if __name__ == "__main__":
                         help="LiDAR device ID (default: 71).")
     parser.add_argument("--camera_id", type=int, default=211,
                         help="Camera device ID (default: 211).")
+    parser.add_argument("--rerun_mode", choices=["connect", "spawn", "web", "none"],
+                        default="connect",
+                        help=("Rerun output mode: connect to an existing viewer, spawn a native "
+                              "viewer, serve a web viewer, or buffer only."))
+    parser.add_argument("--rerun_memory_limit", default="2GB",
+                        help="Memory limit passed to spawned/web Rerun viewers (default: 2GB).")
     args = parser.parse_args()
 
     gclf_file_path = Path(args.log_folder) / f"camera{args.camera_id}.gclf"
@@ -130,4 +149,6 @@ if __name__ == "__main__":
          gclf_file_path=gclf_file_path,
          lidar_log_path=lidar_log_path,
          lidar_id=args.lidar_id,
-         camera_id=args.camera_id)
+         camera_id=args.camera_id,
+         rerun_mode=args.rerun_mode,
+         rerun_memory_limit=args.rerun_memory_limit)

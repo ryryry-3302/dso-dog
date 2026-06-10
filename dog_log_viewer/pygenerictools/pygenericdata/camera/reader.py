@@ -35,6 +35,10 @@ IMG_HEADER_PAYLOAD_SIZES = {
 VARIABLE_IMG_HEADER_PAYLOADS = ["attributeTypes", "attributeValues"]
 
 
+def _little_endian_format(format_codes):
+    return "<" + "".join(format_codes)
+
+
 class GenericCameraReader:
     def __init__(self, gclf_file: str):
         assert (
@@ -113,7 +117,7 @@ class GenericCameraReader:
         ]
         payload = self._read_bytes(payload_size)
 
-        buffer_format = "".join(
+        buffer_format = _little_endian_format(
             [IMG_HEADER_PAYLOAD_FORMATS[k] for k in fixed_size_attributes]
         )
         buffer_size = sum([IMG_HEADER_PAYLOAD_SIZES[k]
@@ -130,13 +134,11 @@ class GenericCameraReader:
             metadata["attributeValues"] = list()
             assert len(payload) == 0
         else:
-            buffer_format = (
-                IMG_HEADER_PAYLOAD_FORMATS["attributeTypes"] * attribute_count
+            buffer_format = _little_endian_format(
+                [IMG_HEADER_PAYLOAD_FORMATS["attributeTypes"]] * attribute_count
+                + [IMG_HEADER_PAYLOAD_FORMATS["attributeValues"]] * attribute_count
             )
-            buffer_format += (
-                IMG_HEADER_PAYLOAD_FORMATS["attributeValues"] * attribute_count
-            )
-            buffer_size = sum(
+            buffer_size = attribute_count * sum(
                 [
                     IMG_HEADER_PAYLOAD_SIZES[k]
                     for k in ["attributeTypes", "attributeValues"]
